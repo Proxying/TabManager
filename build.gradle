@@ -1,0 +1,36 @@
+plugins {
+    id 'org.spongepowered.plugin' version '0.7'
+    id 'net.ellune.blossom' version '1.0.1'
+    id 'com.github.johnrengelman.shadow' version '1.2.3'
+}
+
+sourceCompatibility = '1.8'
+targetCompatibility = '1.8'
+
+group 'uk.co.proxying'
+
+defaultTasks 'shadowJar'
+
+dependencies {
+    compile 'org.spongepowered:spongeapi:5.0.0'
+    compile 'org.projectlombok:lombok:1.16.10'
+}
+
+shadowJar {
+    def bVer = System.getenv("BUILD_NUMBER") ?: version
+    archiveName = "TabManager-${project.version.minus("-SNAPSHOT")}-${bVer}.jar"
+}
+
+artifacts {
+    archives shadowJar
+}
+
+tasks.withType(JavaCompile) {
+    options.encoding = 'UTF-8'
+}
+
+compileJava.options.encoding = 'UTF-8'
+
+blossom {
+    replaceToken '@project.version@', project.version, 'src/main/java/uk/co/proxying/tabmanager/PluginInfo.java'
+}
