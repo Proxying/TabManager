@@ -3,6 +3,7 @@ package uk.co.proxying.tabmanager;
 import com.google.gson.*;
 import com.google.inject.Inject;
 import lombok.Getter;
+import me.rojo8399.placeholderapi.PlaceholderService;
 import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
@@ -21,6 +22,7 @@ import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
 import org.spongepowered.api.plugin.Plugin;
+import org.spongepowered.api.scheduler.Task;
 import org.spongepowered.api.service.permission.PermissionService;
 import org.spongepowered.api.text.Text;
 import uk.co.proxying.tabmanager.commands.MainCommand;
@@ -40,6 +42,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 @Plugin(
 		id = PluginInfo.ID,
@@ -47,7 +50,8 @@ import java.util.UUID;
 		version = PluginInfo.VERSION,
 		description = PluginInfo.DESCRIPTION,
 		authors = {
-				"Proxying"
+				"Proxying",
+				"RandomByte"
 		}
 ) public class TabManager {
 
@@ -77,6 +81,9 @@ import java.util.UUID;
 	private PermissionService permissionService;
 
 	@Getter
+	private PlaceholderService placeholderService;
+
+	@Getter
 	private LinkedHashMap<String, TabGroup> tabGroups = new LinkedHashMap<>();
 
 	@Getter
@@ -92,10 +99,15 @@ import java.util.UUID;
 	private boolean addToTeam = false;
 
 	@Getter
+	private int updateIntervalSeconds = -1;
+
+	@Getter
 	private String tabHeader = "";
 
 	@Getter
 	private String tabFooter = "";
+
+	private static final String UPDATE_TASK_NAME = "tabmanager-S-update-task";
 
 	@Listener
 	public void preInit(GamePreInitializationEvent event) {
@@ -115,6 +127,12 @@ import java.util.UUID;
 				configManager.save(configurationNode);
 			}
 			configurationNode = configManager.load();
+			// update config from older versions
+			if (configurationNode.getNode(PluginInfo.NAME, "update-interval").isVirtual()) {
+				configurationNode.getNode(PluginInfo.NAME, "update-interval").setComment("The interval in seconds in which the tab texts get updated. "
+						+ "This is only needed when you are using PlaceholderAPI. Set to -1 to disable the updating.").setValue(5);
+				configManager.save(configurationNode);
+			}
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -126,6 +144,8 @@ import java.util.UUID;
 	public void onChangeServiceProvider(ChangeServiceProviderEvent event) {
 		if (event.getService().equals(PermissionService.class)) {
 			permissionService = (PermissionService) event.getNewProviderRegistration().getProvider();
+		} else if (event.getService().equals(PlaceholderService.class)) {
+			placeholderService = (PlaceholderService) event.getNewProviderRegistration().getProvider();
 		}
 	}
 
@@ -150,12 +170,14 @@ import java.util.UUID;
 		Utilities.scheduleSyncTask(() -> {
 			ScoreHandler.getInstance().setup();
 		}, 20);
+		startUpdateTask();
 	}
 
 	@Listener
 	public void onServerReload(GameReloadEvent event) {
 		refreshCache();
 		refreshCurrentPlayers();
+		startUpdateTask();
 	}
 
 	public void refreshCurrentPlayers() {
@@ -172,6 +194,7 @@ import java.util.UUID;
 		}
 		this.changeVanilla = getRootNode().getNode(PluginInfo.NAME, "Edit Vanilla Tab List").getBoolean();
 		this.addToTeam = getRootNode().getNode(PluginInfo.NAME, "Add Players to Teams").getBoolean();
+		this.updateIntervalSeconds = getRootNode().getNode(PluginInfo.NAME, "update-interval").getInt();
 		tabGroups.clear();
 		tabPlayers.clear();
 		tabHeader = "";
@@ -379,6 +402,24 @@ import java.util.UUID;
 			e.printStackTrace();
 		}
 		return null;
+	}
+
+	private void startUpdateTask() {
+		// cancel old tasks
+		for (Task task : Sponge.getScheduler().getTasksByName(UPDATE_TASK_NAME)) {
+			task.cancel();
+		}
+
+		if (updateIntervalSeconds < 1) return;
+
+		Task.builder()
+				.name(UPDATE_TASK_NAME)
+				.interval(updateIntervalSeconds, TimeUnit.SECONDS)
+				.execute(() -> {
+					for (Player player : Sponge.getServer().getOnlinePlayers()) {
+						Utilities.checkAndUpdateName(player);
+					}
+				}).submit(this);
 	}
 
 	public Logger getLogger() {
