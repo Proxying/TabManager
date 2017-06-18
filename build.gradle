@@ -11,9 +11,14 @@ group 'uk.co.proxying'
 
 defaultTasks 'shadowJar'
 
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
 dependencies {
     compile 'org.spongepowered:spongeapi:5.0.0'
     compile 'org.projectlombok:lombok:1.16.10'
+    compile 'com.github.rojo8399:PlaceholderAPI:d7e4c42e78647b7f4b76ccb7d159cca4404fcb7a'
 }
 
 shadowJar {

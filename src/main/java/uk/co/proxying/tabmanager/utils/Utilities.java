@@ -9,6 +9,8 @@ import uk.co.proxying.tabmanager.tabObjects.BaseTab;
 import uk.co.proxying.tabmanager.tabObjects.TabGroup;
 import uk.co.proxying.tabmanager.tabObjects.TabPlayer;
 
+import me.rojo8399.placeholderapi.PlaceholderService;
+
 /**
  * Created by Kieran Quigley (Proxying) on 14-Jan-17.
  */
@@ -40,7 +42,10 @@ public class Utilities {
 			if (!TabManager.getInstance().isChangeVanilla()) {
 				return;
 			}
-			Text toDisplay = Text.of(TextSerializers.formattingCode('&').deserialize(tabPlayer.prefix + player.getName() + tabPlayer.suffix));
+			Text prefixText = tryFillPlaceholders(player, tabPlayer.prefix);
+			Text suffixText = tryFillPlaceholders(player, tabPlayer.suffix);
+			// don't deserialize the player's name to allow formats by the prefix
+			Text toDisplay = Text.of(prefixText, player.getName(), suffixText);
 			for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
 				if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
 					player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
@@ -58,7 +63,10 @@ public class Utilities {
 			if (!TabManager.getInstance().isChangeVanilla()) {
 				return;
 			}
-			Text toDisplay = Text.of(TextSerializers.formattingCode('&').deserialize(playerGroup.prefix + player.getName() + playerGroup.suffix));
+			Text prefixText = tryFillPlaceholders(player, playerGroup.prefix);
+			Text suffixText = tryFillPlaceholders(player, playerGroup.suffix);
+			// don't deserialize the player's name to allow formats by the prefix
+			Text toDisplay = Text.of(prefixText + player.getName() + suffixText);
 			for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
 				if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
 					player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
@@ -70,10 +78,10 @@ public class Utilities {
 	public static void checkAndUpdateName(Player player) {
 		updateOtherUsersForPlayer(player);
 		if (!TabManager.getInstance().getTabHeader().equalsIgnoreCase("")) {
-			player.getTabList().setHeader(Text.of(TextSerializers.formattingCode('&').deserialize(TabManager.getInstance().getTabHeader())));
+			player.getTabList().setHeader(tryFillPlaceholders(player, TabManager.getInstance().getTabHeader()));
 		}
 		if (!TabManager.getInstance().getTabFooter().equalsIgnoreCase("")) {
-			player.getTabList().setFooter(Text.of(TextSerializers.formattingCode('&').deserialize(TabManager.getInstance().getTabFooter())));
+			player.getTabList().setFooter(tryFillPlaceholders(player, TabManager.getInstance().getTabFooter()));
 		}
 		if (TabManager.getInstance().getTabPlayers().containsKey(player.getUniqueId())) {
 			updateForcedPlayerName(player);
@@ -96,9 +104,25 @@ public class Utilities {
 						continue;
 					}
 				}
-				Text update = Text.of(TextSerializers.formattingCode('&').deserialize(tab.getPrefix() + player1.getName() + tab.getSuffix()));
+				Text prefixText = tryFillPlaceholders(player, tab.getPrefix());
+				Text suffixText = tryFillPlaceholders(player, tab.getSuffix());
+				// don't deserialize the player's name to allow formats by the prefix
+				Text update = Text.of(prefixText, player1.getName(), suffixText);
 				player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(update);
 			}
 		}
+	}
+
+	private static Text tryFillPlaceholders(Player targetPlayer, String string) {
+		PlaceholderService placeholderService = TabManager.getInstance().getPlaceholderService();
+		if (placeholderService != null) {
+			return placeholderService.replacePlaceholders(targetPlayer, string);
+		} else {
+			return deserializeText(string);
+		}
+	}
+
+	private static Text deserializeText(String string) {
+		return TextSerializers.FORMATTING_CODE.deserialize(string);
 	}
 }

@@ -3,6 +3,7 @@ package uk.co.proxying.tabmanager;
 import com.google.gson.*;
 import com.google.inject.Inject;
 import lombok.Getter;
+import me.rojo8399.placeholderapi.PlaceholderService;
 import ninja.leaping.configurate.ConfigurationNode;
 import ninja.leaping.configurate.commented.CommentedConfigurationNode;
 import ninja.leaping.configurate.loader.ConfigurationLoader;
@@ -47,7 +48,8 @@ import java.util.UUID;
 		version = PluginInfo.VERSION,
 		description = PluginInfo.DESCRIPTION,
 		authors = {
-				"Proxying"
+				"Proxying",
+				"RandomByte"
 		}
 ) public class TabManager {
 
@@ -75,6 +77,9 @@ import java.util.UUID;
 
 	@Getter
 	private PermissionService permissionService;
+
+	@Getter
+	private PlaceholderService placeholderService;
 
 	@Getter
 	private LinkedHashMap<String, TabGroup> tabGroups = new LinkedHashMap<>();
@@ -126,6 +131,8 @@ import java.util.UUID;
 	public void onChangeServiceProvider(ChangeServiceProviderEvent event) {
 		if (event.getService().equals(PermissionService.class)) {
 			permissionService = (PermissionService) event.getNewProviderRegistration().getProvider();
+		} else if (event.getService().equals(PlaceholderService.class)) {
+			placeholderService = (PlaceholderService) event.getNewProviderRegistration().getProvider();
 		}
 	}
 
