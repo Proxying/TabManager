@@ -66,7 +66,7 @@ public class Utilities {
 			Text prefixText = tryFillPlaceholders(player, playerGroup.prefix);
 			Text suffixText = tryFillPlaceholders(player, playerGroup.suffix);
 			// don't deserialize the player's name to allow formats by the prefix
-			Text toDisplay = Text.of(prefixText + player.getName() + suffixText);
+			Text toDisplay = Text.of(prefixText, player.getName(), suffixText);
 			for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
 				if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
 					player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
