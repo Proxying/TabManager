@@ -116,7 +116,7 @@ public class Utilities {
 	private static Text tryFillPlaceholders(Player targetPlayer, String string) {
 		PlaceholderService placeholderService = TabManager.getInstance().getPlaceholderService();
 		if (placeholderService != null) {
-			return placeholderService.replacePlaceholders(targetPlayer, string);
+			return placeholderService.replacePlaceholders(string, targetPlayer, null); // observer = null
 		} else {
 			return deserializeText(string);
 		}
