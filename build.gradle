@@ -1,24 +1,24 @@
 plugins {
-    id 'org.spongepowered.plugin' version '0.7'
-    id 'net.ellune.blossom' version '1.0.1'
-    id 'com.github.johnrengelman.shadow' version '1.2.3'
+    id "org.spongepowered.plugin" version "0.7"
+    id "net.ellune.blossom" version "1.0.1"
+    id "com.github.johnrengelman.shadow" version "1.2.3"
 }
 
-sourceCompatibility = '1.8'
-targetCompatibility = '1.8'
+sourceCompatibility = "1.8"
+targetCompatibility = "1.8"
 
-group 'uk.co.proxying'
+group "uk.co.proxying"
 
-defaultTasks 'shadowJar'
+defaultTasks "shadowJar"
 
 repositories {
-    maven { url 'https://jitpack.io' }
+    maven { url "https://jitpack.io" }
 }
 
 dependencies {
-    compile 'org.spongepowered:spongeapi:5.0.0'
-    compile 'org.projectlombok:lombok:1.16.10'
-    compile 'com.github.rojo8399:PlaceholderAPI:v4.2'
+    compile "org.spongepowered:spongeapi:5.0.0"
+    compile "org.projectlombok:lombok:1.16.10"
+    compile "com.github.rojo8399:PlaceholderAPI:v4.2"
 }
 
 shadowJar {
@@ -31,11 +31,11 @@ artifacts {
 }
 
 tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
+    options.encoding = "UTF-8"
 }
 
-compileJava.options.encoding = 'UTF-8'
+compileJava.options.encoding = "UTF-8"
 
 blossom {
-    replaceToken '@project.version@', project.version, 'src/main/java/uk/co/proxying/tabmanager/PluginInfo.java'
+    replaceToken "@project.version@", project.version, "src/main/java/uk/co/proxying/tabmanager/PluginInfo.java"
 }
