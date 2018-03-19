@@ -33,10 +33,12 @@ public class ScoreHandler {
 
 	public void clearTeams() {
 		for (Team team : scoreboard.getTeams()) {
-			for (Text member : team.getMembers()) {
-				team.removeMember(member);
+			if (team.getName().contains("TabM_")) {
+				for (Text member : team.getMembers()) {
+					team.removeMember(member);
+				}
+				team.unregister();
 			}
-			team.unregister();
 		}
 	}
 

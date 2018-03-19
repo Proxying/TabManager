@@ -21,6 +21,7 @@ import org.spongepowered.api.event.game.state.GameAboutToStartServerEvent;
 import org.spongepowered.api.event.game.state.GamePreInitializationEvent;
 import org.spongepowered.api.event.game.state.GameStartedServerEvent;
 import org.spongepowered.api.event.service.ChangeServiceProviderEvent;
+import org.spongepowered.api.plugin.Dependency;
 import org.spongepowered.api.plugin.Plugin;
 import org.spongepowered.api.scheduler.Task;
 import org.spongepowered.api.service.permission.PermissionService;
@@ -52,6 +53,10 @@ import java.util.concurrent.TimeUnit;
 		authors = {
 				"Proxying",
 				"RandomByte"
+		},
+		dependencies = {
+				@Dependency(id = "placeholderapi"),
+				@Dependency(id = "nucleus")
 		}
 ) public class TabManager {
 
@@ -107,6 +112,9 @@ import java.util.concurrent.TimeUnit;
 	@Getter
 	private String tabFooter = "";
 
+	@Getter
+	private boolean useNicknames = false;
+
 	private static final String UPDATE_TASK_NAME = "tabmanager-S-update-task";
 
 	@Listener
@@ -133,6 +141,10 @@ import java.util.concurrent.TimeUnit;
 						+ "This is only needed when you are using PlaceholderAPI. Set to -1 to disable the updating.").setValue(5);
 				configManager.save(configurationNode);
 			}
+			if (configurationNode.getNode(PluginInfo.NAME, "Use Player Nicknames").isVirtual()) {
+				configurationNode.getNode(PluginInfo.NAME, "Use Player Nicknames").setComment("This will attempt to use a players display name/nickname rather than their actual Minecraft name.").setValue(false);
+				configManager.save(configurationNode);
+			}
 		}
 		catch (IOException e) {
 			e.printStackTrace();
@@ -144,8 +156,11 @@ import java.util.concurrent.TimeUnit;
 	public void onChangeServiceProvider(ChangeServiceProviderEvent event) {
 		if (event.getService().equals(PermissionService.class)) {
 			permissionService = (PermissionService) event.getNewProviderRegistration().getProvider();
-		} else if (event.getService().equals(PlaceholderService.class)) {
-			placeholderService = (PlaceholderService) event.getNewProviderRegistration().getProvider();
+		}
+		if (Sponge.getPluginManager().getPlugin("placeholderapi").isPresent()) {
+			if (event.getService().equals(PlaceholderService.class)) {
+				placeholderService = (PlaceholderService) event.getNewProviderRegistration().getProvider();
+			}
 		}
 	}
 
@@ -167,9 +182,7 @@ import java.util.concurrent.TimeUnit;
 	@Listener
 	public void onServerStart(GameStartedServerEvent event) {
 		refreshCache();
-		Utilities.scheduleSyncTask(() -> {
-			ScoreHandler.getInstance().setup();
-		}, 20);
+		Utilities.scheduleSyncTask(() -> ScoreHandler.getInstance().setup(), 20);
 		startUpdateTask();
 	}
 
@@ -195,6 +208,7 @@ import java.util.concurrent.TimeUnit;
 		this.changeVanilla = getRootNode().getNode(PluginInfo.NAME, "Edit Vanilla Tab List").getBoolean();
 		this.addToTeam = getRootNode().getNode(PluginInfo.NAME, "Add Players to Teams").getBoolean();
 		this.updateIntervalSeconds = getRootNode().getNode(PluginInfo.NAME, "update-interval").getInt();
+		this.useNicknames = getRootNode().getNode(PluginInfo.NAME, "Use Player Nicknames").getBoolean();
 		tabGroups.clear();
 		tabPlayers.clear();
 		tabHeader = "";

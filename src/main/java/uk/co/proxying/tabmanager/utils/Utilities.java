@@ -1,5 +1,7 @@
 package uk.co.proxying.tabmanager.utils;
 
+import io.github.nucleuspowered.nucleus.api.NucleusAPI;
+import me.rojo8399.placeholderapi.PlaceholderService;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
@@ -8,8 +10,6 @@ import uk.co.proxying.tabmanager.TabManager;
 import uk.co.proxying.tabmanager.tabObjects.BaseTab;
 import uk.co.proxying.tabmanager.tabObjects.TabGroup;
 import uk.co.proxying.tabmanager.tabObjects.TabPlayer;
-
-import me.rojo8399.placeholderapi.PlaceholderService;
 
 /**
  * Created by Kieran Quigley (Proxying) on 14-Jan-17.
@@ -45,7 +45,7 @@ public class Utilities {
 			Text prefixText = tryFillPlaceholders(player, tabPlayer.prefix);
 			Text suffixText = tryFillPlaceholders(player, tabPlayer.suffix);
 			// don't deserialize the player's name to allow formats by the prefix
-			Text toDisplay = Text.of(prefixText, player.getName(), suffixText);
+			Text toDisplay = Text.of(prefixText, TabManager.getInstance().isUseNicknames() ? checkPlayerNickname(player) : player.getName(), suffixText);
 			for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
 				if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
 					player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
@@ -66,7 +66,7 @@ public class Utilities {
 			Text prefixText = tryFillPlaceholders(player, playerGroup.prefix);
 			Text suffixText = tryFillPlaceholders(player, playerGroup.suffix);
 			// don't deserialize the player's name to allow formats by the prefix
-			Text toDisplay = Text.of(prefixText, player.getName(), suffixText);
+			Text toDisplay = Text.of(prefixText, TabManager.getInstance().isUseNicknames() ? checkPlayerNickname(player) : player.getName(), suffixText);
 			for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
 				if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
 					player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
@@ -107,7 +107,7 @@ public class Utilities {
 				Text prefixText = tryFillPlaceholders(player, tab.getPrefix());
 				Text suffixText = tryFillPlaceholders(player, tab.getSuffix());
 				// don't deserialize the player's name to allow formats by the prefix
-				Text update = Text.of(prefixText, player1.getName(), suffixText);
+				Text update = Text.of(prefixText, TabManager.getInstance().isUseNicknames() ? checkPlayerNickname(player1) : player1.getName(), suffixText);
 				player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(update);
 			}
 		}
@@ -124,5 +124,13 @@ public class Utilities {
 
 	private static Text deserializeText(String string) {
 		return TextSerializers.FORMATTING_CODE.deserialize(string);
+	}
+
+	private static Text checkPlayerNickname(Player player) {
+		if (!NucleusAPI.getNicknameService().isPresent()) {
+			return Text.of(player.getName());
+		} else {
+			return NucleusAPI.getNicknameService().get().getNickname(player).orElse(Text.of(player.getName()));
+		}
 	}
 }
