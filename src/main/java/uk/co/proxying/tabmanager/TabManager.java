@@ -2,6 +2,7 @@ package uk.co.proxying.tabmanager;
 
 import com.google.gson.*;
 import com.google.inject.Inject;
+import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import lombok.Getter;
 import me.rojo8399.placeholderapi.PlaceholderService;
 import ninja.leaping.configurate.ConfigurationNode;
@@ -112,8 +113,10 @@ import java.util.concurrent.TimeUnit;
 	@Getter
 	private String tabFooter = "";
 
-	@Getter
 	private boolean useNicknames = false;
+
+	@Getter
+	private boolean attemptPlaceholders = false;
 
 	private static final String UPDATE_TASK_NAME = "tabmanager-S-update-task";
 
@@ -406,6 +409,9 @@ import java.util.concurrent.TimeUnit;
 			}
 		}
 
+		if ((tabFooter.contains("%") && tabFooter.indexOf("%") != tabFooter.lastIndexOf("%")) || tabHeader.contains("%") && tabHeader.indexOf("%") != tabHeader.lastIndexOf("%")) {
+			attemptPlaceholders = true;
+		}
 	}
 
 	public ConfigurationNode getRootNode() {
@@ -438,5 +444,9 @@ import java.util.concurrent.TimeUnit;
 
 	public Logger getLogger() {
 		return this.logger;
+	}
+
+	public boolean isUseNicknames(Player player) {
+		return useNicknames && NucleusAPI.getNicknameService().isPresent() && NucleusAPI.getNicknameService().get().getNickname(player).isPresent();
 	}
 }
