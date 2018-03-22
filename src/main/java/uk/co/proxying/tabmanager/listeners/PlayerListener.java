@@ -5,6 +5,8 @@ import org.spongepowered.api.event.Listener;
 import org.spongepowered.api.event.filter.cause.Root;
 import org.spongepowered.api.event.network.ClientConnectionEvent;
 import uk.co.proxying.tabmanager.TabManager;
+import uk.co.proxying.tabmanager.tabObjects.BaseTab;
+import uk.co.proxying.tabmanager.tabObjects.TabGroup;
 import uk.co.proxying.tabmanager.utils.ScoreHandler;
 import uk.co.proxying.tabmanager.utils.Utilities;
 
@@ -15,7 +17,15 @@ public class PlayerListener {
 
 	@Listener
 	public void onPlayerJoin(ClientConnectionEvent.Join event, @Root Player player) {
-		Utilities.scheduleSyncTask(() -> Utilities.checkAndUpdateName(player), 50);
+		Utilities.scheduleSyncTask(() -> {
+			Utilities.checkAndUpdateName(player, true);
+			if (TabManager.getInstance().getPlayerGroups().get(player.getUniqueId()) != null) {
+				BaseTab baseTab = TabManager.getInstance().getPlayerGroups().get(player.getUniqueId());
+				if (baseTab instanceof TabGroup) {
+					Utilities.updateGroupPlayerName(player, (TabGroup) baseTab);
+				}
+			}
+		}, 1);
 	}
 
 	@Listener

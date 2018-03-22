@@ -32,7 +32,7 @@ public class Utilities {
         Sponge.getScheduler().createTaskBuilder().execute(runnable).intervalTicks(intervalTicks).submit(TabManager.getInstance());
     }
 
-    public static void updateForcedPlayerName(Player player) {
+    private static void updateForcedPlayerName(Player player) {
         TabPlayer tabPlayer = TabManager.getInstance().getTabPlayers().get(player.getUniqueId());
         if (tabPlayer != null) {
             if (TabManager.getInstance().isAddToTeam()) {
@@ -73,7 +73,6 @@ public class Utilities {
             if (TabManager.getInstance().isAddToTeam()) {
                 ScoreHandler.getInstance().addPlayerGroupData(player, playerGroup);
             }
-            TabManager.getInstance().getPlayerGroups().put(player.getUniqueId(), playerGroup);
             if (!TabManager.getInstance().isChangeVanilla()) {
                 return;
             }
@@ -103,7 +102,7 @@ public class Utilities {
         }
     }
 
-    public static void checkAndUpdateName(Player player) {
+    public static void checkAndUpdateName(Player player, boolean forceGroupRecheck) {
         updateOtherUsersForPlayer(player);
         if (!TabManager.getInstance().getTabHeader().equalsIgnoreCase("")) {
             player.getTabList().setHeader(TabManager.getInstance().isAttemptPlaceholders() ? tryFillPlaceholders(player, TabManager.getInstance().getTabHeader()) : deserializeText(TabManager.getInstance().getTabHeader()));
@@ -116,13 +115,26 @@ public class Utilities {
             return;
         }
 
-        TabGroup foundGroup = PermsHelper.findCorrectGroup(player);
-        if (foundGroup != null) {
-            updateGroupPlayerName(player, foundGroup);
+        if (forceGroupRecheck) {
+            checkAndUpdateGroup(player);
+        } else {
+            if (TabManager.getInstance().getPlayerGroups().get(player.getUniqueId()) != null) {
+                BaseTab baseTab = TabManager.getInstance().getPlayerGroups().get(player.getUniqueId());
+                if (baseTab instanceof TabGroup) {
+                    updateGroupPlayerName(player, (TabGroup) baseTab);
+                }
+            }
         }
     }
 
-    public static void updateOtherUsersForPlayer(Player player) {
+    public static void checkAndUpdateGroup(Player player) {
+        TabGroup tabGroup = PermsHelper.findCorrectGroup(player);
+        if (tabGroup != null) {
+            TabManager.getInstance().getPlayerGroups().put(player.getUniqueId(), tabGroup);
+        }
+    }
+
+    private static void updateOtherUsersForPlayer(Player player) {
         for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
             if (player.getTabList().getEntry(player1.getUniqueId()).isPresent()) {
                 BaseTab tab = TabManager.getInstance().getTabPlayers().get(player1.getUniqueId());

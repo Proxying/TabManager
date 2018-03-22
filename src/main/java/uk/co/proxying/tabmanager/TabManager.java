@@ -105,7 +105,10 @@ import java.util.concurrent.TimeUnit;
 	private boolean addToTeam = false;
 
 	@Getter
-	private int updateIntervalSeconds = -1;
+	private int placeHolderUpdateIntervalSeconds = -1;
+
+	@Getter
+	private int groupUpdateIntervalSeconds = -1;
 
 	@Getter
 	private String tabHeader = "";
@@ -118,7 +121,9 @@ import java.util.concurrent.TimeUnit;
 	@Getter
 	private boolean attemptPlaceholders = false;
 
-	private static final String UPDATE_TASK_NAME = "tabmanager-S-update-task";
+	private static final String PLACEHOLDER_UPDATE_TASK_NAME = "tabmanager-placeholder-updater";
+
+	private static final String GROUP_UPDATE_TASK_NAME = "tabmanager-group-updater";
 
 	@Listener
 	public void preInit(GamePreInitializationEvent event) {
@@ -146,6 +151,11 @@ import java.util.concurrent.TimeUnit;
 			}
 			if (configurationNode.getNode(PluginInfo.NAME, "Use Player Nicknames").isVirtual()) {
 				configurationNode.getNode(PluginInfo.NAME, "Use Player Nicknames").setComment("This will attempt to use a players display name/nickname rather than their actual Minecraft name.").setValue(false);
+				configManager.save(configurationNode);
+			}
+			if (configurationNode.getNode(PluginInfo.NAME, "group-update-interval").isVirtual()) {
+				configurationNode.getNode(PluginInfo.NAME, "group-update-interval").setComment("The interval in seconds in which players groups get re-checked for updates (such as purchasing" +
+						"donation ranks, becoming staff etc. [This is performance heavy, so do NOT set it too low. Default is 60, recommended is no less than that]. Set to -1 to disable the updating.").setValue(60);
 				configManager.save(configurationNode);
 			}
 		}
@@ -200,7 +210,7 @@ import java.util.concurrent.TimeUnit;
 		playerGroups.clear();
 		ScoreHandler.getInstance().clearTeams();
 		for (Player player : Sponge.getServer().getOnlinePlayers()) {
-			Utilities.checkAndUpdateName(player);
+			Utilities.checkAndUpdateName(player, true);
 		}
 	}
 
@@ -210,7 +220,8 @@ import java.util.concurrent.TimeUnit;
 		}
 		this.changeVanilla = getRootNode().getNode(PluginInfo.NAME, "Edit Vanilla Tab List").getBoolean();
 		this.addToTeam = getRootNode().getNode(PluginInfo.NAME, "Add Players to Teams").getBoolean();
-		this.updateIntervalSeconds = getRootNode().getNode(PluginInfo.NAME, "update-interval").getInt();
+		this.placeHolderUpdateIntervalSeconds = getRootNode().getNode(PluginInfo.NAME, "update-interval").getInt();
+		this.groupUpdateIntervalSeconds = getRootNode().getNode(PluginInfo.NAME, "group-update-interval").getInt();
 		this.useNicknames = getRootNode().getNode(PluginInfo.NAME, "Use Player Nicknames").getBoolean();
 		tabGroups.clear();
 		tabPlayers.clear();
@@ -424,22 +435,37 @@ import java.util.concurrent.TimeUnit;
 		return null;
 	}
 
-	private void startUpdateTask() {
+	public void startUpdateTask() {
 		// cancel old tasks
-		for (Task task : Sponge.getScheduler().getTasksByName(UPDATE_TASK_NAME)) {
+		for (Task task : Sponge.getScheduler().getTasksByName(PLACEHOLDER_UPDATE_TASK_NAME)) {
 			task.cancel();
 		}
 
-		if (updateIntervalSeconds < 1) return;
+		for (Task task : Sponge.getScheduler().getTasksByName(GROUP_UPDATE_TASK_NAME)) {
+			task.cancel();
+		}
 
-		Task.builder()
-				.name(UPDATE_TASK_NAME)
-				.interval(updateIntervalSeconds, TimeUnit.SECONDS)
-				.execute(() -> {
-					for (Player player : Sponge.getServer().getOnlinePlayers()) {
-						Utilities.checkAndUpdateName(player);
-					}
-				}).submit(this);
+		if (placeHolderUpdateIntervalSeconds > 1) {
+			Task.builder()
+					.name(PLACEHOLDER_UPDATE_TASK_NAME)
+					.interval(placeHolderUpdateIntervalSeconds, TimeUnit.SECONDS)
+					.execute(() -> {
+						for (Player player : Sponge.getServer().getOnlinePlayers()) {
+							Utilities.checkAndUpdateName(player, false);
+						}
+					}).submit(this);
+		}
+
+		if (groupUpdateIntervalSeconds > 1) {
+			Task.builder()
+					.name(GROUP_UPDATE_TASK_NAME)
+					.interval(groupUpdateIntervalSeconds, TimeUnit.SECONDS)
+					.execute(() -> {
+						for (Player player : Sponge.getServer().getOnlinePlayers()) {
+							Utilities.checkAndUpdateGroup(player);
+						}
+					}).submit(this);
+		}
 	}
 
 	public Logger getLogger() {

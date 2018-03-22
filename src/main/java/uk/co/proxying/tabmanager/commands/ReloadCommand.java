@@ -19,6 +19,7 @@ public class ReloadCommand implements CommandExecutor {
 	public CommandResult execute(CommandSource src, CommandContext args) throws CommandException {
 		TabManager.getInstance().refreshCache();
 		TabManager.getInstance().refreshCurrentPlayers();
+		TabManager.getInstance().startUpdateTask();
 		src.sendMessage(Text.of(TextColors.GREEN, PluginInfo.NAME + " has been refreshed."));
 		return CommandResult.success();
 	}
