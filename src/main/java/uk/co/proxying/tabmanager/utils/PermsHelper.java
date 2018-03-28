@@ -11,7 +11,13 @@ import java.util.Map;
  */
 public class PermsHelper {
 
-	static TabGroup findCorrectGroup(User user) {
+	static TabGroup findCorrectGroup(User user, TabGroup oldGroup) {
+		if (oldGroup != null) {
+			if (user.hasPermission(("tabmanager.group.") + oldGroup.groupName.toLowerCase())) {
+				//Still in the same group as last time, no point in checking the rest.
+				return oldGroup;
+			}
+		}
 		for (Map.Entry<String, TabGroup> entry : TabManager.getInstance().getTabGroups().entrySet()) {
 			if (user.hasPermission(("tabmanager.group.") + entry.getKey().toLowerCase())) {
 				return entry.getValue();

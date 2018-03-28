@@ -44,6 +44,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 @Plugin(
@@ -96,7 +97,7 @@ import java.util.concurrent.TimeUnit;
 	private LinkedHashMap<UUID, TabPlayer> tabPlayers = new LinkedHashMap<>();
 
 	@Getter
-	private Map<UUID, BaseTab> playerGroups = new HashMap<>();
+	private ConcurrentHashMap<UUID, BaseTab> playerGroups = new ConcurrentHashMap<>();
 
 	@Getter
 	private boolean changeVanilla = true;
@@ -460,6 +461,7 @@ import java.util.concurrent.TimeUnit;
 			Task.builder()
 					.name(GROUP_UPDATE_TASK_NAME)
 					.interval(groupUpdateIntervalSeconds, TimeUnit.SECONDS)
+					.async()
 					.execute(() -> {
 						for (Player player : Sponge.getServer().getOnlinePlayers()) {
 							Utilities.checkAndUpdateGroup(player);

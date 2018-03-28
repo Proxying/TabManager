@@ -42,29 +42,13 @@ public class Utilities {
             if (!TabManager.getInstance().isChangeVanilla()) {
                 return;
             }
-            Text prefixText;
-            Text suffixText;
-            if (tabPlayer.getPrefix().contains("%") && tabPlayer.getPrefix().indexOf("%") != tabPlayer.getPrefix().lastIndexOf("%")) {
-                prefixText = tryFillPlaceholders(player, tabPlayer.getPrefix());
-            } else {
-                prefixText = deserializeText(tabPlayer.getPrefix());
-            }
-            if (tabPlayer.getSuffix().contains("%") && tabPlayer.getSuffix().indexOf("%") != tabPlayer.getSuffix().lastIndexOf("%")) {
-                suffixText = tryFillPlaceholders(player, tabPlayer.getSuffix());
-            } else {
-                suffixText = deserializeText(tabPlayer.getSuffix());
-            }
-            // don't deserialize the player's name to allow formats by the prefix
-            Text toDisplay = Text.of(prefixText, TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName(), suffixText);
+            StringBuilder toUpdate = new StringBuilder();
+            toUpdate.append(tabPlayer.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(tabPlayer.getSuffix());
+
+            Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             if (player.getTabList().getEntry(player.getUniqueId()).isPresent()) {
-                player.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
+                player.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(displayThis);
             }
-            //Redundant I think since the player will update this themselves sometime earlier/later in the loop.
-            /*for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
-                if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
-                    player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
-                }
-            }*/
         }
     }
 
@@ -76,29 +60,14 @@ public class Utilities {
             if (!TabManager.getInstance().isChangeVanilla()) {
                 return;
             }
-            Text prefixText;
-            Text suffixText;
-            if (playerGroup.getPrefix().contains("%") && playerGroup.getPrefix().indexOf("%") != playerGroup.getPrefix().lastIndexOf("%")) {
-                prefixText = tryFillPlaceholders(player, playerGroup.getPrefix());
-            } else {
-                prefixText = deserializeText(playerGroup.getPrefix());
-            }
-            if (playerGroup.getSuffix().contains("%") && playerGroup.getSuffix().indexOf("%") != playerGroup.getSuffix().lastIndexOf("%")) {
-                suffixText = tryFillPlaceholders(player, playerGroup.getSuffix());
-            } else {
-                suffixText = deserializeText(playerGroup.getSuffix());
-            }
+            StringBuilder toUpdate = new StringBuilder();
+            toUpdate.append(playerGroup.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(playerGroup.getSuffix());
+
+            Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             // don't deserialize the player's name to allow formats by the prefix
-            Text toDisplay = Text.of(prefixText, TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName(), suffixText);
             if (player.getTabList().getEntry(player.getUniqueId()).isPresent()) {
-                player.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
+                player.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(displayThis);
             }
-            //Redundant I think since the player will update this themselves sometime earlier/later in the loop.
-            /*for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
-                if (player1.getTabList().getEntry(player.getUniqueId()).isPresent()) {
-                    player1.getTabList().getEntry(player.getUniqueId()).get().setDisplayName(toDisplay);
-                }
-            }*/
         }
     }
 
@@ -128,7 +97,12 @@ public class Utilities {
     }
 
     public static void checkAndUpdateGroup(Player player) {
-        TabGroup tabGroup = PermsHelper.findCorrectGroup(player);
+        BaseTab oldTab = TabManager.getInstance().getPlayerGroups().get(player.getUniqueId());
+        TabGroup oldGroup = null;
+        if (oldTab != null && oldTab instanceof TabGroup) {
+            oldGroup = (TabGroup) oldTab;
+        }
+        TabGroup tabGroup = PermsHelper.findCorrectGroup(player, oldGroup);
         if (tabGroup != null) {
             TabManager.getInstance().getPlayerGroups().put(player.getUniqueId(), tabGroup);
         }
@@ -144,21 +118,11 @@ public class Utilities {
                         continue;
                     }
                 }
-                Text prefixText;
-                Text suffixText;
-                if (tab.getPrefix().contains("%") && tab.getPrefix().indexOf("%") != tab.getPrefix().lastIndexOf("%")) {
-                    prefixText = tryFillPlaceholders(player, tab.getPrefix());
-                } else {
-                    prefixText = deserializeText(tab.getPrefix());
-                }
-                if (tab.getSuffix().contains("%") && tab.getSuffix().indexOf("%") != tab.getSuffix().lastIndexOf("%")) {
-                    suffixText = tryFillPlaceholders(player, tab.getSuffix());
-                } else {
-                    suffixText = deserializeText(tab.getSuffix());
-                }
-                // don't deserialize the player's name to allow formats by the prefix
-                Text update = Text.of(prefixText, TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1) : player1.getName(), suffixText);
-                player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(update);
+                StringBuilder toUpdate = new StringBuilder();
+                toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1) : player1.getName()).append(tab.getSuffix());
+
+                Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
+                player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(displayThis);
             }
         }
     }
