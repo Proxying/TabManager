@@ -2,6 +2,7 @@ package uk.co.proxying.tabmanager.utils;
 
 import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import me.rojo8399.placeholderapi.PlaceholderService;
+import me.rojo8399.placeholderapi.impl.utils.TextUtils;
 import org.spongepowered.api.Sponge;
 import org.spongepowered.api.entity.living.player.Player;
 import org.spongepowered.api.text.Text;
@@ -10,6 +11,8 @@ import uk.co.proxying.tabmanager.TabManager;
 import uk.co.proxying.tabmanager.tabObjects.BaseTab;
 import uk.co.proxying.tabmanager.tabObjects.TabGroup;
 import uk.co.proxying.tabmanager.tabObjects.TabPlayer;
+
+import java.util.Map;
 
 /**
  * Created by Kieran Quigley (Proxying) on 14-Jan-17.
@@ -43,7 +46,7 @@ public class Utilities {
                 return;
             }
             StringBuilder toUpdate = new StringBuilder();
-            toUpdate.append(tabPlayer.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(tabPlayer.getSuffix());
+            toUpdate.append(tabPlayer.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player).toPlain() : player.getName()).append(tabPlayer.getSuffix());
 
             Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             if (player.getTabList().getEntry(player.getUniqueId()).isPresent()) {
@@ -61,7 +64,7 @@ public class Utilities {
                 return;
             }
             StringBuilder toUpdate = new StringBuilder();
-            toUpdate.append(playerGroup.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(playerGroup.getSuffix());
+            toUpdate.append(playerGroup.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player).toPlain() : player.getName()).append(playerGroup.getSuffix());
 
             Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             // don't deserialize the player's name to allow formats by the prefix
@@ -74,10 +77,10 @@ public class Utilities {
     public static void checkAndUpdateName(Player player, boolean forceGroupRecheck) {
         updateOtherUsersForPlayer(player);
         if (!TabManager.getInstance().getTabHeader().equalsIgnoreCase("")) {
-            player.getTabList().setHeader(TabManager.getInstance().isAttemptPlaceholders() ? tryFillPlaceholders(player, TabManager.getInstance().getTabHeader()) : deserializeText(TabManager.getInstance().getTabHeader()));
+            player.getTabList().setHeader(TabManager.getInstance().isAttemptPlaceholders() ? attemptFillPlaceHolders(player, TabManager.getInstance().getTabHeader()) : deserializeText(TabManager.getInstance().getTabHeader()));
         }
         if (!TabManager.getInstance().getTabFooter().equalsIgnoreCase("")) {
-            player.getTabList().setFooter(TabManager.getInstance().isAttemptPlaceholders() ? tryFillPlaceholders(player, TabManager.getInstance().getTabFooter()) : deserializeText(TabManager.getInstance().getTabFooter()));
+            player.getTabList().setFooter(TabManager.getInstance().isAttemptPlaceholders() ? attemptFillPlaceHolders(player, TabManager.getInstance().getTabFooter()) : deserializeText(TabManager.getInstance().getTabFooter()));
         }
         if (TabManager.getInstance().getTabPlayers().containsKey(player.getUniqueId())) {
             updateForcedPlayerName(player);
@@ -119,7 +122,7 @@ public class Utilities {
                     }
                 }
                 StringBuilder toUpdate = new StringBuilder();
-                toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1) : player1.getName()).append(tab.getSuffix());
+                toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
 
                 Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
                 player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(displayThis);
@@ -131,6 +134,25 @@ public class Utilities {
         PlaceholderService placeholderService = TabManager.getInstance().getPlaceholderService();
         if (placeholderService != null) {
             return placeholderService.replacePlaceholders(string, targetPlayer, null); // observer = null
+        } else {
+            return deserializeText(string);
+        }
+    }
+
+    private static Text attemptFillPlaceHolders(Player target, String string) {
+        PlaceholderService placeholderService = TabManager.getInstance().getPlaceholderService();
+        if (placeholderService != null) {
+            Map<String, Object> retreivedPlaceholders = placeholderService.fillPlaceholders(TextUtils.parse(string, placeholderService.getDefaultPattern()), target, null);
+            for (Map.Entry<String, Object> entry : retreivedPlaceholders.entrySet()) {
+                if (entry.getValue() instanceof Text) {
+                    if (string.contains(entry.getKey())) {
+                        string = string.replaceAll("%" + entry.getKey() + "%", ((Text) entry.getValue()).toPlain());
+                    } else {
+                        TabManager.getInstance().getLogger().info("Cannot find key " + entry.getKey() + " in string.");
+                    }
+                }
+            }
+            return deserializeText(string);
         } else {
             return deserializeText(string);
         }
