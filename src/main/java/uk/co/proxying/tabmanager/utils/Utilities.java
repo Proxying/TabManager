@@ -4,7 +4,9 @@ import io.github.nucleuspowered.nucleus.api.NucleusAPI;
 import me.rojo8399.placeholderapi.PlaceholderService;
 import me.rojo8399.placeholderapi.impl.utils.TextUtils;
 import org.spongepowered.api.Sponge;
+import org.spongepowered.api.data.key.Keys;
 import org.spongepowered.api.entity.living.player.Player;
+import org.spongepowered.api.entity.living.player.tab.TabListEntry;
 import org.spongepowered.api.text.Text;
 import org.spongepowered.api.text.serializer.TextSerializers;
 import uk.co.proxying.tabmanager.TabManager;
@@ -113,19 +115,47 @@ public class Utilities {
 
     private static void updateOtherUsersForPlayer(Player player) {
         for (Player player1 : Sponge.getServer().getOnlinePlayers()) {
-            if (player.getTabList().getEntry(player1.getUniqueId()).isPresent()) {
-                BaseTab tab = TabManager.getInstance().getTabPlayers().get(player1.getUniqueId());
-                if (tab == null) {
-                    tab = TabManager.getInstance().getPlayerGroups().get(player1.getUniqueId());
-                    if (tab == null) {
-                        continue;
+            if (player1.get(Keys.VANISH).orElse(false)) {
+                if (!player.equals(player1) && !player.hasPermission("nucleus.vanish.see")) {
+                    if (player.getTabList().getEntry(player1.getUniqueId()).isPresent()) {
+                        player.getTabList().removeEntry(player1.getUniqueId());
                     }
                 }
-                StringBuilder toUpdate = new StringBuilder();
-                toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
+                //Secondary Player vanished, don't update their tab list entry for the current player and remove them if they are in players tablist.
+            } else {
+                if (player.getTabList().getEntry(player1.getUniqueId()).isPresent()) {
+                    BaseTab tab = TabManager.getInstance().getTabPlayers().get(player1.getUniqueId());
+                    if (tab == null) {
+                        tab = TabManager.getInstance().getPlayerGroups().get(player1.getUniqueId());
+                        if (tab == null) {
+                            continue;
+                        }
+                    }
+                    StringBuilder toUpdate = new StringBuilder();
+                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
 
-                Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
-                player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(displayThis);
+                    Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
+                    player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(displayThis);
+                } else {
+                    //Player was vanished and removed from tab, now should be re-added.
+                    BaseTab tab = TabManager.getInstance().getTabPlayers().get(player1.getUniqueId());
+                    if (tab == null) {
+                        tab = TabManager.getInstance().getPlayerGroups().get(player1.getUniqueId());
+                        if (tab == null) {
+                            continue;
+                        }
+                    }
+                    StringBuilder toUpdate = new StringBuilder();
+                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
+
+                    Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
+                    player.getTabList().addEntry(TabListEntry.builder()
+                            .displayName(displayThis)
+                            .profile(player1.getProfile())
+                            .gameMode(player1.gameMode().get())
+                            .latency(player1.getConnection().getLatency())
+                            .list(player.getTabList()).build());
+                }
             }
         }
     }
