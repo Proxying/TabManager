@@ -180,10 +180,18 @@ public class Utilities {
                     } else {
                         TabManager.getInstance().getLogger().info("Cannot find key " + entry.getKey() + " in string.");
                     }
+                } else {
+                    //New Papi 4.5.1 doesn't pass them through as text objects anymore yikes. Add this to support new Papi and keep the old one for old Papi.
+                    if (string.contains(entry.getKey())) {
+                        string = string.replaceAll("%" + entry.getKey() + "%", String.valueOf(entry.getValue()));
+                    } else {
+                        TabManager.getInstance().getLogger().info("Cannot find key " + entry.getKey() + " in string.");
+                    }
                 }
             }
             return deserializeText(string);
         } else {
+            TabManager.getInstance().getLogger().info("placeholder service null?");
             return deserializeText(string);
         }
     }
