@@ -1,42 +1,157 @@
-plugins {
-    id "org.spongepowered.plugin" version "0.8.1"
-    id "net.ellune.blossom" version "1.0.1"
-    id "com.github.johnrengelman.shadow" version "1.2.3"
+buildscript {
+    repositories {
+        jcenter()
+        maven { url = "http://files.minecraftforge.net/maven" }
+    }
+    dependencies {
+        classpath "com.github.jengelman.gradle.plugins:shadow:5.2.0"
+        classpath "gradle.plugin.org.spongepowered:spongegradle:0.9.0"
+        classpath "gradle.plugin.net.ellune:blossom:1.0.1"
+    }
 }
+
+plugins {
+    id "groovy"
+    id "java"
+    id "idea"
+    id "signing"
+}
+
+apply plugin: "net.ellune.blossom"
+applyPlugin('com.github.johnrengelman.shadow', '5.2.0')
+applyPlugin('org.spongepowered.plugin', '0.9.0')
+
+sponge.plugin.id = "${getProjectProperty('m_id')}"
+group = "${getProjectProperty('m_group')}"
+version = "${getProjectProperty('m_major')}.${getProjectProperty('m_minor')}.${getProjectProperty('m_patch')}-${getProjectProperty('m_api')}-MC${getProjectProperty('minecraft_version')}"
+description = "${getProjectProperty('m_description')}"
 
 blossom {
     replaceToken "@project.version@", project.version, "src/main/java/uk/co/proxying/tabmanager/PluginInfo.java"
 }
 
-sourceCompatibility = "1.8"
-targetCompatibility = "1.8"
+if (System.getenv().BUILD_NUMBER != null) {
+    version += "+${System.getenv().BUILD_NUMBER}"
+}
 
-group "uk.co.proxying"
-
-defaultTasks "shadowJar"
+compileJava {
+    sourceCompatibility = targetCompatibility = "1.8"
+    options.encoding = 'UTF-8'
+    options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+}
 
 repositories {
-    maven { url "https://jitpack.io" }
+    jcenter()
+    maven {
+        name = "Gradle-Plugins"
+        url = "https://plugins.gradle.org/m2"
+    }
+    maven {
+        name = "JitPack"
+        url = "https://jitpack.io"
+    }
+    maven {
+        name = "Sponge"
+        url = "http://repo.spongepowered.org/maven"
+    }
+    maven {
+        name = "Nucleus"
+        url = "http://repo.drnaylor.co.uk/artifactory/list/minecraft"
+    }
+    maven {
+        name = "QuickStart"
+        url = "http://repo.drnaylor.co.uk/artifactory/list/quickstart"
+    }
+
+    maven {
+        name = "CodeMC"
+        url = "https://repo.codemc.org/repository/maven-public"
+    }
+}
+
+configurations {
+    compile.extendsFrom shadow
 }
 
 dependencies {
-    compile "org.spongepowered:spongeapi:7.0.0"
-    compile "org.projectlombok:lombok:1.16.10"
-    compile "com.github.rojo8399:PlaceholderAPI:master-SNAPSHOT"
-    compile "com.github.NucleusPowered.Nucleus:nucleus-api:1.3.4"
-}
+    compileOnly 'org.projectlombok:lombok:1.18.16'
+    annotationProcessor 'org.projectlombok:lombok:1.18.16'
 
-shadowJar {
-    def bVer = System.getenv("BUILD_NUMBER") ?: version
-    archiveName = "TabManager-${project.version.minus("-SNAPSHOT")}-${bVer}.jar"
+    compile("org.spongepowered:spongeapi:${getProjectProperty('spongeapi')}")
+
+    annotationProcessor("org.spongepowered:spongeapi:${getProjectProperty('spongeapi')}")
+    implementation 'com.github.NucleusPowered:Nucleus:2.3.2'
+
+    compile "com.github.rojo8399:PlaceholderAPI:master-SNAPSHOT"
+
+    compile("javax.validation:validation-api:${getProjectProperty('validation')}")
+    compile group: 'commons-io', name: 'commons-io', version: '2.6'
+    compile group: 'org.bstats', name: 'bstats-sponge', version: '1.7'
+    shadow group: 'org.bstats', name: 'bstats-sponge', version: '1.7'
+    testCompileOnly 'org.projectlombok:lombok:1.18.16'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.16'
 }
 
 artifacts {
     archives shadowJar
 }
 
-tasks.withType(JavaCompile) {
-    options.encoding = "UTF-8"
+processResources {
+    // this will ensure that this task is redone when the versions change.
+    inputs.property "version", "${getProjectProperty('m_major')}.${getProjectProperty('m_minor')}"
+    inputs.property "mcversion", getProjectProperty('minecraft_version')
+    inputs.property "modid", getProjectProperty('m_id')
+    inputs.property "description", getProjectProperty('m_description')
+    // replace stuff in mcmod.info, nothing else
+    from(sourceSets.main.resources.srcDirs) {
+        include "mcmod.info"
+
+        // replace version and mcversion
+        expand 'version': "${getProjectProperty('m_major')}.${getProjectProperty('m_minor')}", 'mcversion': getProjectProperty('minecraft_version')
+    }
+
+    // copy everything else, thats not the mcmod.info
+    from(sourceSets.main.resources.srcDirs) {
+        exclude "mcmod.info"
+    }
+    from 'LICENSE.txt'
 }
 
-compileJava.options.encoding = "UTF-8"
+signing {
+    required { Project.hasProperty("signing.keyId") }
+    sign configurations.archives, configurations.shadow
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+    }
+}
+shadowJar {
+    configurations = [project.configurations.shadow]
+    relocate "org.bstats", "uk.co.proxying.tabmanager.shaded.bstats"
+}
+
+String getProjectProperty(String propertyName) {
+    String temp = "null"
+    if (hasProperty(propertyName)) {
+        temp = this.properties[propertyName]
+        project.logger.log(LogLevel.WARN, "Found property: " + propertyName + " value: " + temp)
+    } else {
+        project.logger.log(LogLevel.ERROR, "Property (" + propertyName + ") not found!")
+    }
+    return temp
+}
+
+void applyPlugin(String PluginId, String PluginVersion) {
+
+    final hasPlugin = project.getPlugins().hasPlugin(PluginId)
+    if (hasPlugin) {
+        final Plugin plugin = project.getPlugins().getPlugin(PluginId)
+        project.logger.log(LogLevel.WARN, 'Plugin ' + PluginId + ' already applied - version ' + PluginVersion)
+    } else {
+        apply plugin: PluginId
+    }
+}
+
+build.dependsOn shadowJar

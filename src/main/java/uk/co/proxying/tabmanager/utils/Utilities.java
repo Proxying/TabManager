@@ -48,7 +48,7 @@ public class Utilities {
                 return;
             }
             StringBuilder toUpdate = new StringBuilder();
-            toUpdate.append(tabPlayer.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player).toPlain() : player.getName()).append(tabPlayer.getSuffix());
+            toUpdate.append(tabPlayer.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(tabPlayer.getSuffix());
 
             Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             if (player.getTabList().getEntry(player.getUniqueId()).isPresent()) {
@@ -66,7 +66,7 @@ public class Utilities {
                 return;
             }
             StringBuilder toUpdate = new StringBuilder();
-            toUpdate.append(playerGroup.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player).toPlain() : player.getName()).append(playerGroup.getSuffix());
+            toUpdate.append(playerGroup.getPrefix()).append(TabManager.getInstance().isUseNicknames(player) ? checkPlayerNickname(player) : player.getName()).append(playerGroup.getSuffix());
 
             Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
             // don't deserialize the player's name to allow formats by the prefix
@@ -132,7 +132,7 @@ public class Utilities {
                         }
                     }
                     StringBuilder toUpdate = new StringBuilder();
-                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
+                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1) : player1.getName()).append(tab.getSuffix());
 
                     Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
                     player.getTabList().getEntry(player1.getUniqueId()).get().setDisplayName(displayThis);
@@ -146,7 +146,7 @@ public class Utilities {
                         }
                     }
                     StringBuilder toUpdate = new StringBuilder();
-                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1).toPlain() : player1.getName()).append(tab.getSuffix());
+                    toUpdate.append(tab.getPrefix()).append(TabManager.getInstance().isUseNicknames(player1) ? checkPlayerNickname(player1) : player1.getName()).append(tab.getSuffix());
 
                     Text displayThis = tryFillPlaceholders(player, toUpdate.toString());
                     player.getTabList().addEntry(TabListEntry.builder()
@@ -200,7 +200,23 @@ public class Utilities {
         return TextSerializers.FORMATTING_CODE.deserialize(string);
     }
 
-    private static Text checkPlayerNickname(Player player) {
-        return NucleusAPI.getNicknameService().get().getNickname(player).get();
+
+
+    private static String checkPlayerNickname(Player player) {
+        if (NucleusAPI.getNicknameService().isPresent()) {
+            if(TabManager.getInstance().usePlainNickname()){
+                return NucleusAPI.getNicknameService().get().getNickname(player).orElse(Text.of(player.getName() + "Name")).toPlain();
+            }else {
+                return TextSerializers.FORMATTING_CODE.serialize(NucleusAPI.getNicknameService().get().getNickname(player).orElse(Text.of(player.getName() + "Name")));
+            }
+        } else {
+            if(TabManager.getInstance().usePlainNickname()){
+                return Text.of(player.getName()).toPlain();
+            }else {
+                return TextSerializers.FORMATTING_CODE.serialize(Text.of(player.getName()));
+            }
+
+        }
     }
+
 }
